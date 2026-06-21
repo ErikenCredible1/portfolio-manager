@@ -1,0 +1,17 @@
+# Personal portfolio data (real holdings, dollar amounts, tickers)
+portfolio_data.json
+portfolio_weights.csv
+watchlist_state.json
+
+# OS / editor
+.DS_Store
+
+# Claude Code local settings
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
