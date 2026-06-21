@@ -321,6 +321,14 @@ def target_allocation(df):
     return df
 
 
+def compute_action(trade_value):
+    if trade_value > 50:
+        return "BUY"
+    if trade_value < -50:
+        return "TRIM"
+    return "HOLD"
+
+
 def run_scoring(holdings):
     rows = []
     for h in holdings:
@@ -364,9 +372,7 @@ def run_scoring(holdings):
     df["trade_shares"]  = df.apply(
         lambda r: round(r["trade_value"] / r["live_price"]) if r["live_price"] > 0 else 0, axis=1
     )
-    df["action"] = df["trade_value"].apply(
-        lambda x: "BUY" if x > 50 else ("SELL" if x < -50 else "HOLD")
-    )
+    df["action"] = df["trade_value"].apply(compute_action)
     df = df.sort_values("score", ascending=False).reset_index(drop=True)
 
     # Sector concentration + SOXX regime
@@ -557,7 +563,7 @@ HTML_PAGE = """<!DOCTYPE html>
   /* ACTIONS */
   .action { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
   .BUY  { color: var(--green); }
-  .SELL { color: var(--red); }
+  .TRIM { color: var(--red); }
   .HOLD { color: var(--dim); }
   .trade-pos { color: var(--green); }
   .trade-neg { color: var(--red); }
