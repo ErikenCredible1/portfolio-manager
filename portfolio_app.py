@@ -216,6 +216,25 @@ def get_soxx_regime():
 # SCORING ENGINE
 # ─────────────────────────────────────────────────────────────
 
+def compute_momentum_score(price):
+    """Weighted multi-timeframe momentum: 1w 10%, 1m 35%, 3m 40%, 6m 15%.
+    Returns the scaled point contribution to the 0-100 score (same 3.5x
+    scale-up as the old 1m/6m/12m formula, so momentum's overall weight
+    relative to fundamentals/volatility/volume in the total score is unchanged)."""
+    mom_1w = (price.iloc[-1] / price.iloc[-6])   - 1 if len(price) > 6   else 0
+    mom_1m = (price.iloc[-1] / price.iloc[-21])  - 1 if len(price) > 21  else 0
+    mom_3m = (price.iloc[-1] / price.iloc[-63])  - 1 if len(price) > 63  else 0
+    mom_6m = (price.iloc[-1] / price.iloc[-126]) - 1 if len(price) > 126 else 0
+
+    weighted = (
+        float(np.clip(mom_1w * 100, -5,  5))  * 0.10 +
+        float(np.clip(mom_1m * 100, -15, 10)) * 0.35 +
+        float(np.clip(mom_3m * 100, -15, 18)) * 0.40 +
+        float(np.clip(mom_6m * 100, -15, 20)) * 0.15
+    )
+    return weighted * (35 / 10)
+
+
 def score_asset(ticker):
     price = get_price_history(ticker)
     if price.empty or len(price) < 30:
@@ -224,17 +243,12 @@ def score_asset(ticker):
     info   = get_info(ticker)
     sector = info.get("sector", "Other")
 
-    # 1. Multi-timeframe momentum (max ~35 pts)
-    mom_1m  = (price.iloc[-1] / price.iloc[-21])  - 1 if len(price) > 21  else 0
-    mom_6m  = (price.iloc[-1] / price.iloc[-126]) - 1 if len(price) > 126 else 0
-    mom_12m = (price.iloc[-1] / price.iloc[0])    - 1
-    momentum_score = (
-        float(np.clip(mom_1m  * 100, -10, 10)) * 0.20 +
-        float(np.clip(mom_6m  * 100, -15, 20)) * 0.50 +
-        float(np.clip(mom_12m * 100, -15, 20)) * 0.30
-    ) * (35 / 10)
+    # 1. Multi-timeframe momentum: 1w/1m/3m/6m weighted (see compute_momentum_score)
+    momentum_score = compute_momentum_score(price)
 
-    # 2. Relative strength vs sector ETF (max 15 pts)
+    # 2. Relative strength vs sector ETF (max 15 pts) — uses 6m return
+    #    independently of the momentum weighting above.
+    mom_6m         = (price.iloc[-1] / price.iloc[-126]) - 1 if len(price) > 126 else 0
     sector_ret     = get_sector_return_6m(sector)
     relative_score = float(np.clip((float(mom_6m) - sector_ret) * 100, -10, 15))
 
