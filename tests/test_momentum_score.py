@@ -31,9 +31,9 @@ def test_compute_momentum_score_clips_6m_leg_at_positive_cap():
 
 
 def test_compute_momentum_score_clips_negative_moves():
-    # All four legs drop 30%; -15% floor applies to 1m/3m/6m, -5% floor to 1w.
+    # All four legs drop 30%; -10% floor applies to 1m, -15% to 3m/6m, -5% to 1w.
     price = _make_price_series(130, last=70, w1=100, m1=100, m3=100, m6=100)
-    expected = (-5 * 0.10 + -15 * 0.35 + -15 * 0.40 + -15 * 0.15) * (35 / 10)
+    expected = (-5 * 0.10 + -10 * 0.35 + -15 * 0.40 + -15 * 0.15) * (35 / 10)
     assert compute_momentum_score(price) == pytest.approx(expected)
 
 

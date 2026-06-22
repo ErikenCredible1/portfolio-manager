@@ -228,7 +228,7 @@ def compute_momentum_score(price):
 
     weighted = (
         float(np.clip(mom_1w * 100, -5,  5))  * 0.10 +
-        float(np.clip(mom_1m * 100, -15, 10)) * 0.35 +
+        float(np.clip(mom_1m * 100, -10, 10)) * 0.35 +
         float(np.clip(mom_3m * 100, -15, 18)) * 0.40 +
         float(np.clip(mom_6m * 100, -15, 20)) * 0.15
     )
