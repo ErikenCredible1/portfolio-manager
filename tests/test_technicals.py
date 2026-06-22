@@ -19,6 +19,12 @@ def test_compute_ma50_signal_neutral_on_insufficient_history():
     assert compute_ma50_signal(price) == "neutral"
 
 
+def test_compute_ma50_signal_neutral_when_price_within_1pct_of_average():
+    # ma50 = (49*100 + 100.5) / 50 = 100.01; price is 0.49% above it.
+    price = pd.Series([100.0] * 49 + [100.5])
+    assert compute_ma50_signal(price) == "neutral"
+
+
 def test_compute_macd_signal_bullish_on_sustained_uptrend():
     price = pd.Series([100 + i * 2 for i in range(60)], dtype=float)
     assert compute_macd_signal(price) == "bullish"
@@ -31,6 +37,12 @@ def test_compute_macd_signal_bearish_on_sustained_downtrend():
 
 def test_compute_macd_signal_neutral_on_insufficient_history():
     price = pd.Series([100.0] * 20)
+    assert compute_macd_signal(price) == "neutral"
+
+
+def test_compute_macd_signal_neutral_on_flat_price():
+    # Constant price -> macd_line and signal_line are both exactly 0.
+    price = pd.Series([150.0] * 60)
     assert compute_macd_signal(price) == "neutral"
 
 

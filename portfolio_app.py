@@ -390,13 +390,18 @@ def compute_macd_signal(price):
     ema26 = price.ewm(span=26, adjust=False).mean()
     macd_line   = ema12 - ema26
     signal_line = macd_line.ewm(span=9, adjust=False).mean()
-    return "bullish" if macd_line.iloc[-1] > signal_line.iloc[-1] else "bearish"
+    gap = macd_line.iloc[-1] - signal_line.iloc[-1]
+    if abs(gap) / price.iloc[-1] < 0.0005:
+        return "neutral"
+    return "bullish" if gap > 0 else "bearish"
 
 
 def compute_ma50_signal(price):
     if len(price) < 50:
         return "neutral"
     ma50 = price.rolling(50).mean().iloc[-1]
+    if abs(price.iloc[-1] - ma50) / ma50 < 0.01:
+        return "neutral"
     return "bullish" if price.iloc[-1] > ma50 else "bearish"
 
 
