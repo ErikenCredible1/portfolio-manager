@@ -868,6 +868,7 @@ HTML_PAGE = """<!DOCTYPE html>
   .HOLD { color: var(--dim); }
   .FULL_SELL   { color: var(--red); }
   .TRIM_TO_100 { color: var(--amber); }
+  .RE_ENTRY { color: var(--green); text-shadow: 0 0 6px color-mix(in srgb, var(--green) 60%, transparent); font-weight: 900; }
   .trade-pos { color: var(--green); }
   .trade-neg { color: var(--red); }
   .pnl-pos   { color: var(--green); }
@@ -995,6 +996,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <button class="tab"        onclick="showTab('exits')">[ EXITS ]</button>
         <button class="tab"        onclick="showTab('sectors')">[ SECTORS ]</button>
         <button class="tab"        onclick="showTab('trials')">[ TRIALS ]</button>
+        <button class="tab"        onclick="showTab('watchlist')">[ WATCHLIST ]</button>
       </div>
 
       <!-- RANKINGS -->
@@ -1055,6 +1057,17 @@ HTML_PAGE = """<!DOCTYPE html>
             <th>Action</th><th>Momentum</th>
           </tr></thead>
           <tbody id="trialsBody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- WATCHLIST -->
+      <div id="tab-watchlist" class="hidden">
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th>Ticker</th><th>Name</th><th>Score</th><th>Tier</th>
+            <th>Flagged</th><th>Eligible In</th><th>Momentum</th><th></th>
+          </tr></thead>
+          <tbody id="watchlistBody"></tbody>
         </table></div>
       </div>
     </div>
@@ -1206,6 +1219,21 @@ async function savePortfolio() {
   }
 }
 
+async function unwatchTicker(ticker) {
+  try {
+    await fetch('/api/unwatch', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ticker})
+    });
+    document.querySelectorAll('#watchlistBody tr').forEach(tr => {
+      if (tr.querySelector('.ticker-cell')?.textContent.trim() === ticker) tr.remove();
+    });
+    toast(ticker + ' removed from watchlist');
+  } catch (e) {
+    toast('Failed to remove from watchlist: ' + e.message, true);
+  }
+}
+
 async function loadPortfolio() {
   try {
     const res  = await fetch('/api/load');
@@ -1296,11 +1324,11 @@ async function analyze() {
 
 // ── TABS ─────────────────────────────────────────────────────
 function showTab(name) {
-  ['rankings','buys','exits','sectors','trials'].forEach(t => {
+  ['rankings','buys','exits','sectors','trials','watchlist'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
   });
   document.querySelectorAll('.tab').forEach((btn, i) => {
-    btn.classList.toggle('active', ['rankings','buys','exits','sectors','trials'][i] === name);
+    btn.classList.toggle('active', ['rankings','buys','exits','sectors','trials','watchlist'][i] === name);
   });
 }
 
@@ -1314,6 +1342,9 @@ function fmt$(v) {
 function fmtPct(v)   { return v == null ? '—' : (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%'; }
 function fmtPrice(v) { return v ? '$' + parseFloat(v).toFixed(2) : '—'; }
 function pnlClass(v) { return v >= 0 ? 'pnl-pos' : 'pnl-neg'; }
+function fmtDate(iso) {
+  return iso ? new Date(iso).toLocaleDateString() : '—';
+}
 
 function scoreBar(s) {
   const color = s >= 70 ? 'var(--green)' : s >= 50 ? 'var(--amber)' : s >= 30 ? 'var(--orange)' : 'var(--red)';
@@ -1458,6 +1489,19 @@ function renderResults(data) {
     <td><span class="action ${p.action}">${p.action}</span></td>
     <td><span class="action ${p.momentum_signal}">${p.momentum_signal}</span></td>
   </tr>`).join('') : '<tr><td colspan="12" class="empty">No trial positions scored</td></tr>';
+
+  // Watchlist
+  const watchlist = all.filter(p => p.watchlisted_since).sort(byTierThenValue);
+  document.getElementById('watchlistBody').innerHTML = watchlist.length ? watchlist.map(p => `<tr>
+    <td class="ticker-cell">${p.ticker}</td>
+    <td class="name-cell">${p.name||''}</td>
+    <td>${scoreBar(p.score)}</td>
+    <td><span class="tier tier-${p.tier}">${p.tier}</span></td>
+    <td>${fmtDate(p.watchlisted_since)}</td>
+    <td>${p.days_until_eligible === 0 ? 'Eligible' : p.days_until_eligible + 'd'}</td>
+    <td><span class="action ${p.momentum_signal}">${p.momentum_signal}</span></td>
+    <td><button class="btn-secondary" style="padding:3px 8px;font-size:9px" onclick="unwatchTicker('${p.ticker}')">Remove</button></td>
+  </tr>`).join('') : '<tr><td colspan="8" class="empty">No positions on the watchlist</td></tr>';
 
   document.getElementById('welcome').classList.add('hidden');
   document.getElementById('resultsArea').classList.remove('hidden');
