@@ -382,6 +382,23 @@ def compute_rsi_failure_swing(price, lookback=FAILURE_SWING_LOOKBACK):
     return "neutral"
 
 
+def compute_macd_signal(price):
+    if len(price) < 35:
+        return "neutral"
+    ema12 = price.ewm(span=12, adjust=False).mean()
+    ema26 = price.ewm(span=26, adjust=False).mean()
+    macd_line   = ema12 - ema26
+    signal_line = macd_line.ewm(span=9, adjust=False).mean()
+    return "bullish" if macd_line.iloc[-1] > signal_line.iloc[-1] else "bearish"
+
+
+def compute_ma50_signal(price):
+    if len(price) < 50:
+        return "neutral"
+    ma50 = price.rolling(50).mean().iloc[-1]
+    return "bullish" if price.iloc[-1] > ma50 else "bearish"
+
+
 def target_allocation(df):
     """Softmax allocation with P&L modifier, then tier clipping."""
     exp_scores       = np.exp(df["score"] / 15)
