@@ -725,6 +725,12 @@ def api_save_snapshot():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/unwatch", methods=["POST"])
+def api_unwatch():
+    ticker = request.json.get("ticker", "")
+    unflag_watchlisted(ticker)
+    return jsonify({"ok": True})
+
 @app.route("/api/price/<ticker>")
 def api_price(ticker):
     try:
