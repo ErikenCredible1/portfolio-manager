@@ -424,6 +424,7 @@ def get_technicals(ticker):
 
 
 MIN_DAYS_BEFORE_FULL_SELL = 3  # approximated as calendar days, not trading days
+MAX_MAIN_POSITIONS = 35
 
 
 def load_watchlist_state():
@@ -643,6 +644,12 @@ def run_scoring(holdings):
         lambda r: round(r["trade_value"] / r["live_price"]) if r["live_price"] > 0 else 0, axis=1
     )
     df["action"] = df["trade_value"].apply(compute_action)
+
+    main_mask   = df["pos_type"] != "trial"
+    main_ranked = df[main_mask].sort_values("score", ascending=False)
+    excess      = set(main_ranked.iloc[MAX_MAIN_POSITIONS:]["ticker"]) if len(main_ranked) > MAX_MAIN_POSITIONS else set()
+    df["over_position_cap"] = df["ticker"].isin(excess)
+
     df = df.sort_values("score", ascending=False).reset_index(drop=True)
 
     # Sector concentration + SOXX regime
