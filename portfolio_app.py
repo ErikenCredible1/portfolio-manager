@@ -311,6 +311,77 @@ def score_asset(ticker):
     return score, tier, sector, live_price
 
 
+# ─────────────────────────────────────────────────────────────
+# TECHNICAL INDICATORS & MOMENTUM SIGNAL
+# ─────────────────────────────────────────────────────────────
+
+RSI_PERIOD              = 14
+FAILURE_SWING_LOOKBACK  = 20
+
+
+def _rsi_series(price, period=RSI_PERIOD):
+    delta = price.diff()
+    gain  = delta.clip(lower=0)
+    loss  = -delta.clip(upper=0)
+    avg_gain = gain.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+    avg_loss = loss.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
+
+
+def _detect_failure_swing(rsi, threshold, above):
+    """Wilder failure swing: RSI crosses the threshold, pulls back across it,
+    pushes again but fails to exceed the first extreme, then turns back."""
+    crossed = (rsi > threshold) if above else (rsi < threshold)
+    cross_positions = [i for i, c in enumerate(crossed) if c]
+    if len(cross_positions) < 2:
+        return False
+
+    first_run_end = cross_positions[0]
+    for pos in cross_positions[1:]:
+        if pos == first_run_end + 1:
+            first_run_end = pos
+        else:
+            break
+    first_extreme = rsi.iloc[cross_positions[0]:first_run_end + 1].max() if above \
+        else rsi.iloc[cross_positions[0]:first_run_end + 1].min()
+
+    after_first = rsi.iloc[first_run_end + 1:]
+    pulled_back_mask = (after_first < threshold) if above else (after_first > threshold)
+    if not pulled_back_mask.any():
+        return False
+    pullback_pos = after_first.index[pulled_back_mask][0]
+
+    second_excursion = rsi.loc[pullback_pos + 1:]
+    second_crossed_mask = (second_excursion > threshold) if above else (second_excursion < threshold)
+    if not second_crossed_mask.any():
+        return False
+    second_extreme = second_excursion[second_crossed_mask].max() if above \
+        else second_excursion[second_crossed_mask].min()
+
+    failed_to_exceed = (second_extreme < first_extreme) if above else (second_extreme > first_extreme)
+    if not failed_to_exceed:
+        return False
+
+    turned_back = rsi.iloc[-1] < second_extreme if above else rsi.iloc[-1] > second_extreme
+    return bool(turned_back)
+
+
+def compute_rsi_failure_swing(price, lookback=FAILURE_SWING_LOOKBACK):
+    if len(price) < RSI_PERIOD + lookback:
+        return "neutral"
+
+    rsi = _rsi_series(price).iloc[-lookback:].reset_index(drop=True)
+    if rsi.isna().any():
+        return "neutral"
+
+    if _detect_failure_swing(rsi, threshold=70, above=True):
+        return "bearish"
+    if _detect_failure_swing(rsi, threshold=30, above=False):
+        return "bullish"
+    return "neutral"
+
+
 def target_allocation(df):
     """Softmax allocation with P&L modifier, then tier clipping."""
     exp_scores       = np.exp(df["score"] / 15)
