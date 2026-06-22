@@ -38,8 +38,9 @@ from flask import Flask, jsonify, request
 warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
-DATA_FILE = "portfolio_data.json"
-CSV_FILE  = "portfolio_weights.csv"
+DATA_FILE      = "portfolio_data.json"
+CSV_FILE       = "portfolio_weights.csv"
+WATCHLIST_FILE = "watchlist_state.json"
 
 # ─────────────────────────────────────────────────────────────
 # SCORING CONFIG
@@ -417,6 +418,32 @@ def get_technicals(ticker):
     }
     _technicals_cache[ticker] = result
     return result
+
+
+def load_watchlist_state():
+    if os.path.exists(WATCHLIST_FILE):
+        with open(WATCHLIST_FILE) as f:
+            return json.load(f)
+    return {"flagged": []}
+
+
+def save_watchlist_state(state):
+    with open(WATCHLIST_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+
+def is_watchlisted(ticker):
+    state = load_watchlist_state()
+    return ticker in state.get("flagged", [])
+
+
+def flag_watchlisted(ticker):
+    state   = load_watchlist_state()
+    flagged = state.get("flagged", [])
+    if ticker not in flagged:
+        flagged.append(ticker)
+    state["flagged"] = flagged
+    save_watchlist_state(state)
 
 
 def target_allocation(df):
