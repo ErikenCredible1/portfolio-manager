@@ -727,7 +727,7 @@ def api_save_snapshot():
 
 @app.route("/api/unwatch", methods=["POST"])
 def api_unwatch():
-    ticker = request.json.get("ticker", "")
+    ticker = request.json.get("ticker", "").strip().upper()
     unflag_watchlisted(ticker)
     return jsonify({"ok": True})
 
