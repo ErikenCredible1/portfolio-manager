@@ -103,9 +103,11 @@ technicals, independent of position size:
   re-entry, keeping the "strong bullish confirmation" threshold consistent system-wide)
 - **TRIM_TO_100**: score < 30 *and* ≥2 of 3 technicals bearish, *and* the ticker is not yet
   flagged in `watchlist_state.json` — first-time trigger, trim to a $100 token holding rather
-  than a full exit, then flag the ticker.
-- **FULL_SELL**: same trigger condition, but the ticker is already flagged in
-  `watchlist_state.json` (i.e., it already failed once before) — full exit.
+  than a full exit, then flag the ticker with the current timestamp.
+- **FULL_SELL**: same trigger condition, but the ticker was already flagged at least
+  `MIN_DAYS_BEFORE_FULL_SELL` (3 days) ago — full exit. If it triggers again before that gap has
+  elapsed, it resolves to `HOLD` instead: re-scoring within the same session (or the same day)
+  must not silently escalate a token holding straight to a full exit with no trade in between.
 - **HOLD**: everything else, including cases where the score is extreme but technicals don't
   confirm (a deliberate "wait for confirmation" gap, not a bug).
 
