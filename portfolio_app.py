@@ -1310,10 +1310,15 @@ function tradeShrsCell(v, shrs) {
 }
 
 // ── RENDER ────────────────────────────────────────────────────
+const TIER_ORDER = {High: 0, Medium: 1, Low: 2, Exit: 3};
+function byTierThenValue(a, b) {
+  return (TIER_ORDER[a.tier] - TIER_ORDER[b.tier]) || (b.current_value - a.current_value);
+}
+
 function renderResults(data) {
   const all     = data.positions || [];
-  const mainPos = all.filter(p => p.pos_type !== 'trial').sort((a,b) => b.current_value - a.current_value);
-  const trials  = all.filter(p => p.pos_type === 'trial').sort((a,b) => b.current_value - a.current_value);
+  const mainPos = all.filter(p => p.pos_type !== 'trial').sort(byTierThenValue);
+  const trials  = all.filter(p => p.pos_type === 'trial').sort(byTierThenValue);
 
   // Regime badge
   const badge = document.getElementById('regimeBadge');
