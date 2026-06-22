@@ -53,3 +53,29 @@ def test_generate_pdf_report_handles_no_trial_positions(tmp_path, monkeypatch):
     path = generate_pdf_report(result)
     assert os.path.exists(path)
     assert os.path.getsize(path) > 0
+
+
+def test_generate_pdf_report_actually_contains_position_data(tmp_path, monkeypatch):
+    # Compression is disabled in generate_pdf_report specifically so table content
+    # is greppable here -- this catches silently-dropped rows or omitted tables that
+    # the file-level checks above (existence, size, magic bytes) would miss.
+    monkeypatch.setattr(portfolio_app, "REPORTS_DIR", str(tmp_path / "reports"))
+    path = generate_pdf_report(_fake_result())
+    with open(path, "rb") as f:
+        data = f.read()
+    assert b"NVDA" in data
+    assert b"CVNA" in data
+    assert b"Main Positions" in data
+    assert b"Trial Positions" in data
+
+
+def test_generate_pdf_report_omits_trial_table_when_no_trial_positions(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "REPORTS_DIR", str(tmp_path / "reports"))
+    result = _fake_result()
+    result["positions"] = [p for p in result["positions"] if p["pos_type"] == "main"]
+    path = generate_pdf_report(result)
+    with open(path, "rb") as f:
+        data = f.read()
+    assert b"NVDA" in data
+    assert b"CVNA" not in data
+    assert b"Trial Positions" not in data

@@ -517,6 +517,7 @@ def generate_pdf_report(result):
     path = os.path.join(REPORTS_DIR, f"portfolio_report_{date_str}.pdf")
 
     pdf = FPDF(orientation="L", unit="mm", format="A4")
+    pdf.set_compression(False)  # keeps table text greppable in the raw file for testing
     pdf.add_page()
 
     pdf.set_font("Helvetica", "B", 16)
