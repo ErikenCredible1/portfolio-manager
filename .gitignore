@@ -3,6 +3,9 @@ portfolio_data.json
 portfolio_weights.csv
 watchlist_state.json
 
+# Generated PDF snapshots (derived from real holdings data)
+reports/
+
 # OS / editor
 .DS_Store
 

@@ -1165,6 +1165,20 @@ async function savePortfolio() {
     body: JSON.stringify({main: mainData, trial: trialData})
   });
   toast('Saved ✓');
+
+  const holdings = [...mainData, ...trialData].filter(d => d.ticker && parseFloat(d.shares) > 0);
+  if (!holdings.length) return;
+
+  try {
+    const res  = await fetch('/api/save-snapshot', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({holdings})
+    });
+    const data = await res.json();
+    if (data.error) toast('Saved, but snapshot failed: ' + data.error, true);
+  } catch (e) {
+    toast('Saved, but snapshot failed: ' + e.message, true);
+  }
 }
 
 async function loadPortfolio() {
