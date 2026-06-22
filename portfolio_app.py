@@ -1500,7 +1500,7 @@ function renderResults(data) {
     <td>${fmtDate(p.watchlisted_since)}</td>
     <td>${p.days_until_eligible === 0 ? 'Eligible' : p.days_until_eligible + 'd'}</td>
     <td><span class="action ${p.momentum_signal}">${p.momentum_signal}</span></td>
-    <td><button class="btn-secondary" style="padding:3px 8px;font-size:9px" onclick="unwatchTicker('${p.ticker}')">Remove</button></td>
+    <td><button class="btn btn-secondary" style="padding:3px 8px;font-size:9px" onclick="unwatchTicker('${p.ticker}')">Remove</button></td>
   </tr>`).join('') : '<tr><td colspan="8" class="empty">No positions on the watchlist</td></tr>';
 
   document.getElementById('welcome').classList.add('hidden');
