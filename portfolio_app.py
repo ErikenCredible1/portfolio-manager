@@ -472,7 +472,7 @@ def evaluate_momentum_signal(ticker, score, technicals):
     bearish_count = sum(1 for v in technicals.values() if v == "bearish")
 
     if score >= 70 and bullish_count >= 2:
-        return "BUY"
+        return "RE_ENTRY" if is_watchlisted(ticker) else "BUY"
 
     if score < 30 and bearish_count >= 2:
         flagged_since = watchlisted_since(ticker)

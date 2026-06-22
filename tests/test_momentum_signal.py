@@ -81,3 +81,16 @@ def test_trim_to_100_just_below_30(tmp_path, monkeypatch):
     monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
     technicals = _technicals(macd="bearish", ma50="bearish")
     assert evaluate_momentum_signal("CVNA", 29.99, technicals) == "TRIM_TO_100"
+
+
+def test_re_entry_when_watchlisted_ticker_hits_buy_threshold(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    portfolio_app.flag_watchlisted("NVDA")
+    technicals = _technicals(macd="bullish", ma50="bullish")
+    assert evaluate_momentum_signal("NVDA", 75, technicals) == "RE_ENTRY"
+
+
+def test_buy_when_not_watchlisted_even_at_same_threshold(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    technicals = _technicals(macd="bullish", ma50="bullish")
+    assert evaluate_momentum_signal("NVDA", 75, technicals) == "BUY"
