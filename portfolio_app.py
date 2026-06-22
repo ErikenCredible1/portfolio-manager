@@ -446,6 +446,22 @@ def flag_watchlisted(ticker):
     save_watchlist_state(state)
 
 
+def evaluate_momentum_signal(ticker, score, technicals):
+    bullish_count = sum(1 for v in technicals.values() if v == "bullish")
+    bearish_count = sum(1 for v in technicals.values() if v == "bearish")
+
+    if score >= 70 and bullish_count >= 2:
+        return "BUY"
+
+    if score < 30 and bearish_count >= 2:
+        if is_watchlisted(ticker):
+            return "FULL_SELL"
+        flag_watchlisted(ticker)
+        return "TRIM_TO_100"
+
+    return "HOLD"
+
+
 def target_allocation(df):
     """Softmax allocation with P&L modifier, then tier clipping."""
     exp_scores       = np.exp(df["score"] / 15)
