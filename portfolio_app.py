@@ -35,6 +35,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 from flask import Flask, jsonify, request
+from fpdf import FPDF
 
 warnings.filterwarnings("ignore")
 
@@ -42,6 +43,7 @@ app = Flask(__name__)
 DATA_FILE      = "portfolio_data.json"
 CSV_FILE       = "portfolio_weights.csv"
 WATCHLIST_FILE = "watchlist_state.json"
+REPORTS_DIR    = "reports"
 
 # ─────────────────────────────────────────────────────────────
 # SCORING CONFIG
@@ -474,6 +476,77 @@ def evaluate_momentum_signal(ticker, score, technicals):
         return "HOLD"
 
     return "HOLD"
+
+
+def _position_table_rows(positions):
+    return [
+        [
+            p["ticker"],
+            (p.get("name") or "")[:25],
+            f'{p["score"]:.1f}',
+            p["tier"],
+            f'${p["pnl"]:.2f}',
+            f'{p["pnl_pct"] * 100:.1f}%',
+            p["action"],
+            p["momentum_signal"],
+        ]
+        for p in positions
+    ]
+
+
+def _render_table(pdf, title, headers, col_widths, rows):
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, title)
+    pdf.ln(8)
+
+    pdf.set_font("Helvetica", "B", 9)
+    for header, width in zip(headers, col_widths):
+        pdf.cell(width, 7, header, 1)
+    pdf.ln(7)
+
+    pdf.set_font("Helvetica", "", 9)
+    for row in rows:
+        for value, width in zip(row, col_widths):
+            pdf.cell(width, 6, str(value), 1)
+        pdf.ln(6)
+
+
+def generate_pdf_report(result):
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    path = os.path.join(REPORTS_DIR, f"portfolio_report_{date_str}.pdf")
+
+    pdf = FPDF(orientation="L", unit="mm", format="A4")
+    pdf.add_page()
+
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "Portfolio Report")
+    pdf.ln(10)
+
+    pdf.set_font("Helvetica", "", 10)
+    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+    pdf.cell(0, 6, f"Generated: {generated_at}")
+    pdf.ln(6)
+    pdf.cell(0, 6, (
+        f"Total Value: ${result['total_value']:.2f}   "
+        f"Total Invested: ${result['total_invested']:.2f}   "
+        f"Total P&L: ${result['total_pnl']:.2f}"
+    ))
+    pdf.ln(10)
+
+    headers    = ["Ticker", "Name", "Score", "Tier", "P&L $", "P&L %", "Action", "Momentum"]
+    col_widths = [20, 55, 18, 18, 25, 20, 22, 25]
+
+    main_positions  = [p for p in result["positions"] if p["pos_type"] == "main"]
+    trial_positions = [p for p in result["positions"] if p["pos_type"] == "trial"]
+
+    _render_table(pdf, "Main Positions", headers, col_widths, _position_table_rows(main_positions))
+    if trial_positions:
+        pdf.ln(6)
+        _render_table(pdf, "Trial Positions", headers, col_widths, _position_table_rows(trial_positions))
+
+    pdf.output(path)
+    return path
 
 
 def target_allocation(df):
