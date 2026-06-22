@@ -1312,8 +1312,8 @@ function tradeShrsCell(v, shrs) {
 // ── RENDER ────────────────────────────────────────────────────
 function renderResults(data) {
   const all     = data.positions || [];
-  const mainPos = all.filter(p => p.pos_type !== 'trial').sort((a,b) => b.score - a.score);
-  const trials  = all.filter(p => p.pos_type === 'trial').sort((a,b) => b.score - a.score);
+  const mainPos = all.filter(p => p.pos_type !== 'trial').sort((a,b) => b.current_value - a.current_value);
+  const trials  = all.filter(p => p.pos_type === 'trial').sort((a,b) => b.current_value - a.current_value);
 
   // Regime badge
   const badge = document.getElementById('regimeBadge');
