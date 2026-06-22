@@ -505,24 +505,27 @@ def run_scoring(holdings):
             continue
 
         score, tier, sector, live_price = score_asset(ticker)
-        current_value = shares * live_price
-        pnl           = current_value - invested
-        pnl_pct       = (pnl / invested) if invested > 0 else 0
+        technicals      = get_technicals(ticker)
+        momentum_signal = evaluate_momentum_signal(ticker, score, technicals)
+        current_value   = shares * live_price
+        pnl             = current_value - invested
+        pnl_pct         = (pnl / invested) if invested > 0 else 0
 
         info = _info_cache.get(ticker, {})
         rows.append({
-            "ticker":        ticker,
-            "name":          info.get("name", ticker),
-            "shares":        shares,
-            "live_price":    live_price,
-            "current_value": current_value,
-            "invested":      invested,
-            "pnl":           pnl,
-            "pnl_pct":       pnl_pct,
-            "score":         score,
-            "tier":          tier,
-            "sector":        sector,
-            "pos_type":      pos_type,
+            "ticker":          ticker,
+            "name":            info.get("name", ticker),
+            "shares":          shares,
+            "live_price":      live_price,
+            "current_value":   current_value,
+            "invested":        invested,
+            "pnl":             pnl,
+            "pnl_pct":         pnl_pct,
+            "score":           score,
+            "tier":            tier,
+            "sector":          sector,
+            "pos_type":        pos_type,
+            "momentum_signal": momentum_signal,
         })
 
     if not rows:
