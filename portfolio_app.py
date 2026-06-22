@@ -639,14 +639,19 @@ HTML_PAGE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portfolio Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d0d0d; --surface: #161616; --surface2: #1e1e1e;
-    --border: #2a2a2a; --border2: #333;
-    --text: #e8e8e8; --muted: #888; --dim: #555;
-    --green: #22c55e; --red: #ef4444; --amber: #f59e0b;
-    --blue: #3b82f6; --accent: #e8e8e8;
+    /* Palette D+H: Slate Ink Terminal */
+    --bg: #0c1012; --surface: #151a1d; --surface2: #1f262a;
+    --border: #2a3338; --border2: #344048;
+    --text: #e2e8ea; --muted: #7c8e94; --dim: #46545a;
+    --green: #6ee7b7; --red: #fb7185; --amber: #fbbf6b;
+    --blue: #38bdf8; --accent: #38bdf8; --orange: #ff9d5c;
     --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-display: 'Oswald', 'Arial Narrow', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; min-height: 100vh; }
@@ -658,8 +663,11 @@ HTML_PAGE = """<!DOCTYPE html>
 
   /* SIDEBAR HEADER */
   .sidebar-header { padding: 20px 16px 10px; border-bottom: 1px solid var(--border); }
-  .sidebar-header h1 { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+  .sidebar-header h1 { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
   .sidebar-header p { font-size: 10px; color: var(--muted); margin-top: 3px; letter-spacing: 0.04em; }
+  .cursor-blink { display: inline-block; color: var(--accent); animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .cursor-blink { animation: none; } }
 
   /* SECTION LABELS */
   .section-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim); padding: 8px 14px 3px; display: flex; justify-content: space-between; align-items: center; }
@@ -681,10 +689,10 @@ HTML_PAGE = """<!DOCTYPE html>
   .slot input.shares   { flex: 1; color: #60a5fa;     text-align: right; font-size: 11px; }
   .slot input::placeholder { color: var(--dim); font-weight: 400; }
   .slot-clear { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 3px; border-radius: 3px; flex-shrink: 0; }
-  .slot-clear:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+  .slot-clear:hover { color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); }
 
   .trial-divider { border-top: 2px solid var(--border); margin-top: 4px; }
-  .trial-slot .slot-num { color: #f59e0b44; }
+  .trial-slot .slot-num { color: color-mix(in srgb, var(--amber) 60%, transparent); }
   .trial-slot input.ticker { color: var(--amber); }
 
   /* SIDEBAR FOOTER */
@@ -695,7 +703,7 @@ HTML_PAGE = """<!DOCTYPE html>
   .btn-primary   { background: var(--accent); color: #000; width: 100%; }
   .btn-row       { display: flex; gap: 6px; }
   .btn-secondary { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); flex: 1; }
-  .btn-danger    { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); flex: 1; }
+  .btn-danger    { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); border: 1px solid color-mix(in srgb, var(--red) 30%, transparent); flex: 1; }
 
   /* MAIN HEADER */
   .main-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
@@ -705,9 +713,9 @@ HTML_PAGE = """<!DOCTYPE html>
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 24px; }
   .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
   .metric-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px; }
-  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); }
-  .metric-value.pos { color: var(--green); }
-  .metric-value.neg { color: var(--red); }
+  .metric-value { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: 0.02em; color: var(--text); }
+  .metric-value.pos { color: var(--green); text-shadow: 0 0 14px color-mix(in srgb, var(--green) 45%, transparent); }
+  .metric-value.neg { color: var(--red); text-shadow: 0 0 14px color-mix(in srgb, var(--red) 45%, transparent); }
   .metric-sub { font-size: 10px; color: var(--dim); margin-top: 3px; }
 
   /* TABS */
@@ -727,7 +735,7 @@ HTML_PAGE = """<!DOCTYPE html>
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: var(--surface); }
   .ticker-cell { font-weight: 700; letter-spacing: 0.05em; color: var(--accent); }
-  .name-cell   { font-size: 11px; color: var(--muted); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+  .name-cell   { font-size: 11px; color: var(--text); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
   .price-cell  { color: var(--blue); }
 
   /* SCORE BAR */
@@ -737,10 +745,10 @@ HTML_PAGE = """<!DOCTYPE html>
 
   /* TIERS */
   .tier { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; padding: 2px 7px; border-radius: 3px; }
-  .tier-High   { color: var(--green); background: rgba(34,197,94,0.1); }
-  .tier-Medium { color: var(--amber); background: rgba(245,158,11,0.1); }
-  .tier-Low    { color: #f97316;      background: rgba(249,115,22,0.1); }
-  .tier-Exit   { color: var(--red);   background: rgba(239,68,68,0.1); }
+  .tier-High   { color: var(--green);  background: color-mix(in srgb, var(--green) 10%, transparent); box-shadow: 0 0 8px color-mix(in srgb, var(--green) 35%, transparent); }
+  .tier-Medium { color: var(--amber);  background: color-mix(in srgb, var(--amber) 10%, transparent); }
+  .tier-Low    { color: var(--orange); background: color-mix(in srgb, var(--orange) 10%, transparent); }
+  .tier-Exit   { color: var(--red);    background: color-mix(in srgb, var(--red) 10%, transparent); }
 
   /* ACTIONS */
   .action { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -756,7 +764,7 @@ HTML_PAGE = """<!DOCTYPE html>
   .pnl-hint  { font-size: 9px; color: var(--dim); margin-left: 4px; }
 
   /* TRIAL */
-  .trial-badge { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--amber); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+  .trial-badge { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); border: 1px solid color-mix(in srgb, var(--amber) 20%, transparent); padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
 
   /* SECTOR */
   .sector-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
@@ -764,14 +772,14 @@ HTML_PAGE = """<!DOCTYPE html>
   .sector-bar-wrap { flex: 1; margin: 0 16px; }
   .sector-bar-bg   { height: 4px; background: var(--border2); border-radius: 2px; }
   .sector-bar-fill { height: 4px; border-radius: 2px; background: var(--blue); }
-  .sector-over     { background: rgba(239,68,68,0.7); }
+  .sector-over     { background: color-mix(in srgb, var(--red) 70%, transparent); }
   .sector-status-ok   { color: var(--green); font-size: 10px; font-weight: 700; }
   .sector-status-over { color: var(--red);   font-size: 10px; font-weight: 700; }
 
   /* REGIME */
   .regime-badge    { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; border-radius: 4px; font-weight: 700; }
-  .regime-momentum { color: var(--green); background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); }
-  .regime-caution  { color: var(--amber); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); }
+  .regime-momentum { color: var(--green); background: color-mix(in srgb, var(--green) 10%, transparent); border: 1px solid color-mix(in srgb, var(--green) 30%, transparent); }
+  .regime-caution  { color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent); }
   .regime-unknown  { color: var(--muted); background: var(--surface2); border: 1px solid var(--border); }
 
   /* LOADING */
@@ -789,7 +797,7 @@ HTML_PAGE = """<!DOCTYPE html>
   /* TOAST */
   .toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 16px; font-size: 11px; color: var(--text); z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
   .toast.show { opacity: 1; }
-  .toast.err  { border-color: rgba(239,68,68,0.5); color: var(--red); }
+  .toast.err  { border-color: color-mix(in srgb, var(--red) 50%, transparent); color: var(--red); }
 
   /* IMPORT MODAL */
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -813,7 +821,7 @@ HTML_PAGE = """<!DOCTYPE html>
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h1>Portfolio Manager</h1>
+      <h1>Portfolio Manager<span class="cursor-blink">&#9612;</span></h1>
       <p>Live pricing · P&amp;L auto-calculated · 60 + 10 trial slots</p>
     </div>
 
@@ -857,7 +865,7 @@ HTML_PAGE = """<!DOCTYPE html>
   <!-- MAIN -->
   <main class="main">
     <div class="main-header">
-      <div class="main-title">Analysis Results</div>
+      <div class="main-title">[ ANALYSIS RESULTS ]</div>
       <div id="regimeBadge" style="display:none"></div>
     </div>
 
@@ -871,11 +879,11 @@ HTML_PAGE = """<!DOCTYPE html>
       <div class="metrics" id="metricsRow"></div>
 
       <div class="tabs">
-        <button class="tab active" onclick="showTab('rankings')">Rankings</button>
-        <button class="tab"        onclick="showTab('buys')">Buys</button>
-        <button class="tab"        onclick="showTab('exits')">Exits</button>
-        <button class="tab"        onclick="showTab('sectors')">Sectors</button>
-        <button class="tab"        onclick="showTab('trials')">Trials</button>
+        <button class="tab active" onclick="showTab('rankings')">[ RANKINGS ]</button>
+        <button class="tab"        onclick="showTab('buys')">[ BUYS ]</button>
+        <button class="tab"        onclick="showTab('exits')">[ EXITS ]</button>
+        <button class="tab"        onclick="showTab('sectors')">[ SECTORS ]</button>
+        <button class="tab"        onclick="showTab('trials')">[ TRIALS ]</button>
       </div>
 
       <!-- RANKINGS -->
@@ -1183,7 +1191,7 @@ function fmtPrice(v) { return v ? '$' + parseFloat(v).toFixed(2) : '—'; }
 function pnlClass(v) { return v >= 0 ? 'pnl-pos' : 'pnl-neg'; }
 
 function scoreBar(s) {
-  const color = s >= 70 ? '#22c55e' : s >= 50 ? '#f59e0b' : s >= 30 ? '#f97316' : '#ef4444';
+  const color = s >= 70 ? 'var(--green)' : s >= 50 ? 'var(--amber)' : s >= 30 ? 'var(--orange)' : 'var(--red)';
   return `<div class="score-wrap">
     <span style="min-width:28px">${s.toFixed(0)}</span>
     <div class="bar-bg"><div class="bar-fill" style="width:${s}%;background:${color}"></div></div>
@@ -1283,7 +1291,7 @@ function renderResults(data) {
   const exits = mainPos.filter(p => p.tier==='Exit').sort((a,b)=>a.trade_value-b.trade_value);
   document.getElementById('exitsBody').innerHTML = exits.length ? exits.map(p => `<tr>
     <td class="ticker-cell">${p.ticker}</td>
-    <td><span style="color:#ef4444">${p.score.toFixed(1)}</span></td>
+    <td><span style="color:var(--red)">${p.score.toFixed(1)}</span></td>
     <td><span class="tier tier-Exit">Exit</span></td>
     <td class="r ${pnlClass(p.pnl_pct)}">${fmtPct(p.pnl_pct)}</td>
     <td class="r">${fmtPct(p.current_weight)}</td>
