@@ -668,6 +668,11 @@ def run_scoring(holdings):
         for k, v in p.items():
             if isinstance(v, float):
                 p[k] = round(v, 4)
+        # pandas upcasts an int/None column to float64 when rows mix the two (e.g. some
+        # positions watchlisted, some not), turning None into NaN -- normalize back.
+        due = p["days_until_eligible"]
+        if isinstance(due, float):
+            p["days_until_eligible"] = None if pd.isna(due) else int(due)
 
     total_invested = float(df["invested"].sum())
 

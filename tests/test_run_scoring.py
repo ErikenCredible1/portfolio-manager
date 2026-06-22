@@ -49,3 +49,35 @@ def test_run_scoring_watchlist_fields_are_none_when_not_flagged(monkeypatch, tmp
 
     assert pos["watchlisted_since"] is None
     assert pos["days_until_eligible"] is None
+
+
+def test_run_scoring_days_until_eligible_stays_none_when_mixed_with_watchlisted_rows(monkeypatch, tmp_path):
+    # Regression test: pandas upcasts an int/None DataFrame column to float64 when rows mix
+    # the two, turning None into NaN. A portfolio with one watchlisted and one clean position
+    # is exactly the case that exposes this -- a single-row portfolio never hits it.
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+
+    def fake_score_asset(ticker):
+        if ticker == "CVNA":
+            return (20.0, "Exit", "Technology", 100.0)
+        return (75.0, "High", "Technology", 200.0)
+
+    def fake_get_technicals(ticker):
+        if ticker == "CVNA":
+            return {"macd": "bearish", "ma50": "bearish", "rsi_failure_swing": "neutral"}
+        return {"macd": "bullish", "ma50": "bullish", "rsi_failure_swing": "neutral"}
+
+    monkeypatch.setattr(portfolio_app, "score_asset", fake_score_asset)
+    monkeypatch.setattr(portfolio_app, "get_technicals", fake_get_technicals)
+    monkeypatch.setattr(portfolio_app, "get_soxx_regime", lambda: ("momentum", 0.35))
+
+    holdings = [
+        {"ticker": "CVNA", "shares": "10", "invested": "1000", "type": "main"},
+        {"ticker": "NVDA", "shares": "5", "invested": "500", "type": "main"},
+    ]
+    result = portfolio_app.run_scoring(holdings)
+    by_ticker = {p["ticker"]: p for p in result["positions"]}
+
+    assert by_ticker["CVNA"]["days_until_eligible"] == 3
+    assert by_ticker["NVDA"]["days_until_eligible"] is None
+    assert by_ticker["NVDA"]["watchlisted_since"] is None
