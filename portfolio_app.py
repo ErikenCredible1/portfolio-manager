@@ -694,6 +694,18 @@ def api_score():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/save-snapshot", methods=["POST"])
+def api_save_snapshot():
+    holdings = request.json.get("holdings", [])
+    try:
+        result = run_scoring(holdings)
+        if "error" in result:
+            return jsonify(result), 400
+        path = generate_pdf_report(result)
+        return jsonify({"ok": True, "path": path})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/price/<ticker>")
 def api_price(ticker):
     try:
