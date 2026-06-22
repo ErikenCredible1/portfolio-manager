@@ -33,3 +33,17 @@ def test_flag_watchlisted_does_not_overwrite_existing_timestamp(tmp_path, monkey
 def test_watchlisted_since_returns_none_when_not_flagged(tmp_path, monkeypatch):
     monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
     assert watchlisted_since("NVDA") is None
+
+
+def test_unflag_watchlisted_clears_is_watchlisted(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    flag_watchlisted("NVDA")
+    assert is_watchlisted("NVDA") is True
+    portfolio_app.unflag_watchlisted("NVDA")
+    assert is_watchlisted("NVDA") is False
+
+
+def test_unflag_watchlisted_on_never_flagged_ticker_does_not_raise(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    portfolio_app.unflag_watchlisted("NVDA")
+    assert is_watchlisted("NVDA") is False

@@ -459,6 +459,14 @@ def flag_watchlisted(ticker):
     save_watchlist_state(state)
 
 
+def unflag_watchlisted(ticker):
+    state = load_watchlist_state()
+    flagged = state.get("flagged", {})
+    flagged.pop(ticker, None)
+    state["flagged"] = flagged
+    save_watchlist_state(state)
+
+
 def evaluate_momentum_signal(ticker, score, technicals):
     bullish_count = sum(1 for v in technicals.values() if v == "bullish")
     bearish_count = sum(1 for v in technicals.values() if v == "bearish")
