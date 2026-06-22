@@ -603,6 +603,10 @@ def run_scoring(holdings):
         score, tier, sector, live_price = score_asset(ticker)
         technicals      = get_technicals(ticker)
         momentum_signal = evaluate_momentum_signal(ticker, score, technicals)
+        flagged_since   = watchlisted_since(ticker)
+        days_until_eligible = None
+        if flagged_since is not None:
+            days_until_eligible = max(0, MIN_DAYS_BEFORE_FULL_SELL - (datetime.now() - flagged_since).days)
         current_value   = shares * live_price
         pnl             = current_value - invested
         pnl_pct         = (pnl / invested) if invested > 0 else 0
@@ -621,7 +625,9 @@ def run_scoring(holdings):
             "tier":            tier,
             "sector":          sector,
             "pos_type":        pos_type,
-            "momentum_signal": momentum_signal,
+            "momentum_signal":     momentum_signal,
+            "watchlisted_since":   flagged_since.isoformat() if flagged_since else None,
+            "days_until_eligible": days_until_eligible,
         })
 
     if not rows:
