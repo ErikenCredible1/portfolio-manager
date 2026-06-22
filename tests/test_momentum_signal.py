@@ -36,3 +36,27 @@ def test_hold_when_low_score_but_only_one_bearish(tmp_path, monkeypatch):
     monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
     technicals = _technicals(macd="bearish")
     assert evaluate_momentum_signal("CVNA", 20, technicals) == "HOLD"
+
+
+def test_buy_at_exact_score_boundary_of_70(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    technicals = _technicals(macd="bullish", ma50="bullish")
+    assert evaluate_momentum_signal("NVDA", 70, technicals) == "BUY"
+
+
+def test_hold_just_below_70_even_with_two_bullish(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    technicals = _technicals(macd="bullish", ma50="bullish")
+    assert evaluate_momentum_signal("NVDA", 69.99, technicals) == "HOLD"
+
+
+def test_hold_at_exact_score_boundary_of_30_even_with_two_bearish(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    technicals = _technicals(macd="bearish", ma50="bearish")
+    assert evaluate_momentum_signal("CVNA", 30, technicals) == "HOLD"
+
+
+def test_trim_to_100_just_below_30(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    technicals = _technicals(macd="bearish", ma50="bearish")
+    assert evaluate_momentum_signal("CVNA", 29.99, technicals) == "TRIM_TO_100"
