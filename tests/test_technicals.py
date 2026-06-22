@@ -1,6 +1,7 @@
 import pandas as pd
 
-from portfolio_app import compute_ma50_signal, compute_macd_signal
+import portfolio_app
+from portfolio_app import compute_ma50_signal, compute_macd_signal, get_technicals
 
 
 def test_compute_ma50_signal_bullish_when_price_above_average():
@@ -31,3 +32,24 @@ def test_compute_macd_signal_bearish_on_sustained_downtrend():
 def test_compute_macd_signal_neutral_on_insufficient_history():
     price = pd.Series([100.0] * 20)
     assert compute_macd_signal(price) == "neutral"
+
+
+def test_get_technicals_combines_all_three_indicators_and_caches(monkeypatch):
+    portfolio_app._technicals_cache.clear()
+    fake_price = pd.Series([100.0 + i for i in range(150)])
+    calls = {"count": 0}
+
+    def fake_get_price_history(ticker):
+        calls["count"] += 1
+        return fake_price
+
+    monkeypatch.setattr(portfolio_app, "get_price_history", fake_get_price_history)
+
+    result = get_technicals("FAKE")
+    assert set(result.keys()) == {"macd", "ma50", "rsi_failure_swing"}
+    assert result["macd"] in ("bullish", "bearish", "neutral")
+    assert result["ma50"] in ("bullish", "bearish", "neutral")
+    assert result["rsi_failure_swing"] in ("bullish", "bearish", "neutral")
+
+    get_technicals("FAKE")
+    assert calls["count"] == 1  # second call served from cache, no re-fetch

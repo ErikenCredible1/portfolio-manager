@@ -71,9 +71,10 @@ SEMI_TICKERS = {
     "ENPH","TXN","INTC","MU","ASML","KLAC","LRCX","AMAT","SMCI","ARM"
 }
 
-_price_cache      = {}
-_info_cache       = {}
-_sector_ret_cache = {}
+_price_cache       = {}
+_info_cache        = {}
+_sector_ret_cache  = {}
+_technicals_cache  = {}
 
 
 # ─────────────────────────────────────────────────────────────
@@ -397,6 +398,20 @@ def compute_ma50_signal(price):
         return "neutral"
     ma50 = price.rolling(50).mean().iloc[-1]
     return "bullish" if price.iloc[-1] > ma50 else "bearish"
+
+
+def get_technicals(ticker):
+    if ticker in _technicals_cache:
+        return _technicals_cache[ticker]
+
+    price = get_price_history(ticker)
+    result = {
+        "macd":              compute_macd_signal(price),
+        "ma50":              compute_ma50_signal(price),
+        "rsi_failure_swing": compute_rsi_failure_swing(price),
+    }
+    _technicals_cache[ticker] = result
+    return result
 
 
 def target_allocation(df):
