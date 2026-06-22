@@ -733,6 +733,8 @@ HTML_PAGE = """<!DOCTYPE html>
   .BUY  { color: var(--green); }
   .TRIM { color: var(--red); }
   .HOLD { color: var(--dim); }
+  .FULL_SELL   { color: var(--red); }
+  .TRIM_TO_100 { color: var(--amber); }
   .trade-pos { color: var(--green); }
   .trade-neg { color: var(--red); }
   .pnl-pos   { color: var(--green); }
@@ -872,7 +874,7 @@ HTML_PAGE = """<!DOCTYPE html>
             <th class="r">P&amp;L $</th><th class="r">P&amp;L %</th>
             <th class="r">Cur %</th><th class="r">Tgt %</th>
             <th class="r">Trade $</th><th class="r">Trade Shrs</th>
-            <th>Action</th>
+            <th>Action</th><th>Momentum</th>
           </tr></thead>
           <tbody id="rankBody"></tbody>
         </table></div>
@@ -917,7 +919,7 @@ HTML_PAGE = """<!DOCTYPE html>
             <th class="r">Price</th><th class="r">Shares</th>
             <th class="r">Invested</th><th class="r">Value</th>
             <th class="r">P&amp;L $</th><th class="r">P&amp;L %</th>
-            <th>Action</th>
+            <th>Action</th><th>Momentum</th>
           </tr></thead>
           <tbody id="trialsBody"></tbody>
         </table></div>
@@ -1246,8 +1248,9 @@ function renderResults(data) {
       <td class="r ${p.trade_value>=0?'trade-pos':'trade-neg'}">${fmt$(p.trade_value)}</td>
       <td class="r ${p.trade_value>=0?'trade-pos':'trade-neg'}">${ts}</td>
       <td><span class="action ${p.action}">${p.action}</span></td>
+      <td><span class="action ${p.momentum_signal}">${p.momentum_signal}</span></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="15" class="empty">No main positions scored</td></tr>';
+  }).join('') || '<tr><td colspan="16" class="empty">No main positions scored</td></tr>';
 
   // Buys — High tier BUY actions, sorted by trade size
   const buys = mainPos.filter(p => p.action==='BUY' && p.tier==='High').sort((a,b)=>b.trade_value-a.trade_value);
@@ -1301,7 +1304,8 @@ function renderResults(data) {
     <td class="r ${pnlClass(p.pnl)}">${fmt$(p.pnl)}</td>
     <td class="r ${pnlClass(p.pnl_pct)}">${fmtPct(p.pnl_pct)}${pnlHint(p.pnl_pct,p.score)}</td>
     <td><span class="action ${p.action}">${p.action}</span></td>
-  </tr>`).join('') : '<tr><td colspan="11" class="empty">No trial positions scored</td></tr>';
+    <td><span class="action ${p.momentum_signal}">${p.momentum_signal}</span></td>
+  </tr>`).join('') : '<tr><td colspan="12" class="empty">No trial positions scored</td></tr>';
 
   document.getElementById('welcome').classList.add('hidden');
   document.getElementById('resultsArea').classList.remove('hidden');
