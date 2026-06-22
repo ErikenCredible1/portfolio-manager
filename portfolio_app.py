@@ -875,6 +875,7 @@ HTML_PAGE = """<!DOCTYPE html>
   .HOLD { color: var(--dim); }
   .FULL_SELL   { color: var(--red); }
   .TRIM_TO_100 { color: var(--amber); }
+  .OVER_CAP { color: var(--red); font-weight: 900; }
   .RE_ENTRY { color: var(--green); text-shadow: 0 0 6px color-mix(in srgb, var(--green) 60%, transparent); font-weight: 900; }
   .trade-pos { color: var(--green); }
   .trade-neg { color: var(--red); }
@@ -1016,7 +1017,7 @@ HTML_PAGE = """<!DOCTYPE html>
             <th class="r">P&amp;L $</th><th class="r">P&amp;L %</th>
             <th class="r">Cur %</th><th class="r">Tgt %</th>
             <th class="r">Trade $</th><th class="r">Trade Shrs</th>
-            <th>Action</th><th>Momentum</th>
+            <th>Action</th><th>Momentum</th><th>Cap</th>
           </tr></thead>
           <tbody id="rankBody"></tbody>
         </table></div>
@@ -1439,8 +1440,9 @@ function renderResults(data) {
       <td class="r ${p.trade_value>=0?'trade-pos':'trade-neg'}">${ts}</td>
       <td><span class="action ${p.action}">${p.action}</span></td>
       <td><span class="action ${p.momentum_signal}">${p.momentum_signal}</span></td>
+      <td>${p.over_position_cap ? '<span class="action OVER_CAP">OVER CAP</span>' : ''}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="16" class="empty">No main positions scored</td></tr>';
+  }).join('') || '<tr><td colspan="17" class="empty">No main positions scored</td></tr>';
 
   // Buys — High tier BUY actions, sorted by trade size
   const buys = mainPos.filter(p => p.action==='BUY' && p.tier==='High').sort((a,b)=>b.trade_value-a.trade_value);
