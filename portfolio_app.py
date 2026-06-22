@@ -29,6 +29,7 @@ import warnings
 import threading
 import webbrowser
 import csv as csv_module
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -420,11 +421,14 @@ def get_technicals(ticker):
     return result
 
 
+MIN_DAYS_BEFORE_FULL_SELL = 3  # approximated as calendar days, not trading days
+
+
 def load_watchlist_state():
     if os.path.exists(WATCHLIST_FILE):
         with open(WATCHLIST_FILE) as f:
             return json.load(f)
-    return {"flagged": []}
+    return {"flagged": {}}
 
 
 def save_watchlist_state(state):
@@ -434,14 +438,21 @@ def save_watchlist_state(state):
 
 def is_watchlisted(ticker):
     state = load_watchlist_state()
-    return ticker in state.get("flagged", [])
+    return ticker in state.get("flagged", {})
+
+
+def watchlisted_since(ticker):
+    """Returns the datetime the ticker was first flagged, or None if not flagged."""
+    state     = load_watchlist_state()
+    timestamp = state.get("flagged", {}).get(ticker)
+    return datetime.fromisoformat(timestamp) if timestamp else None
 
 
 def flag_watchlisted(ticker):
     state   = load_watchlist_state()
-    flagged = state.get("flagged", [])
+    flagged = state.get("flagged", {})
     if ticker not in flagged:
-        flagged.append(ticker)
+        flagged[ticker] = datetime.now().isoformat()
     state["flagged"] = flagged
     save_watchlist_state(state)
 
@@ -454,10 +465,13 @@ def evaluate_momentum_signal(ticker, score, technicals):
         return "BUY"
 
     if score < 30 and bearish_count >= 2:
-        if is_watchlisted(ticker):
+        flagged_since = watchlisted_since(ticker)
+        if flagged_since is None:
+            flag_watchlisted(ticker)
+            return "TRIM_TO_100"
+        if (datetime.now() - flagged_since).days >= MIN_DAYS_BEFORE_FULL_SELL:
             return "FULL_SELL"
-        flag_watchlisted(ticker)
-        return "TRIM_TO_100"
+        return "HOLD"
 
     return "HOLD"
 

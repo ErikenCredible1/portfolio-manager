@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import portfolio_app
 from portfolio_app import evaluate_momentum_signal
 
@@ -25,10 +27,29 @@ def test_trim_to_100_on_first_sell_trigger(tmp_path, monkeypatch):
     assert portfolio_app.is_watchlisted("CVNA") is True
 
 
-def test_full_sell_when_already_watchlisted(tmp_path, monkeypatch):
+def test_hold_immediately_after_first_sell_trigger_within_gating_window(tmp_path, monkeypatch):
+    # Re-scoring seconds after the first trigger must not escalate straight to
+    # FULL_SELL -- that would mean clicking "Score" twice fully exits a
+    # position with no time passing and no actual trade in between.
     monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
     technicals = _technicals(macd="bearish", ma50="bearish")
     evaluate_momentum_signal("CVNA", 20, technicals)  # first trigger -> TRIM_TO_100
+    assert evaluate_momentum_signal("CVNA", 20, technicals) == "HOLD"
+
+
+def test_hold_when_flagged_recently_but_within_min_days(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    technicals = _technicals(macd="bearish", ma50="bearish")
+    recent = (datetime.now() - timedelta(days=1)).isoformat()
+    portfolio_app.save_watchlist_state({"flagged": {"CVNA": recent}})
+    assert evaluate_momentum_signal("CVNA", 20, technicals) == "HOLD"
+
+
+def test_full_sell_after_min_days_have_passed_since_flagging(tmp_path, monkeypatch):
+    monkeypatch.setattr(portfolio_app, "WATCHLIST_FILE", str(tmp_path / "watchlist_state.json"))
+    technicals = _technicals(macd="bearish", ma50="bearish")
+    old = (datetime.now() - timedelta(days=portfolio_app.MIN_DAYS_BEFORE_FULL_SELL + 1)).isoformat()
+    portfolio_app.save_watchlist_state({"flagged": {"CVNA": old}})
     assert evaluate_momentum_signal("CVNA", 20, technicals) == "FULL_SELL"
 
 
