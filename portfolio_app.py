@@ -535,6 +535,10 @@ def select_tax_harvest_candidates(positions, remaining_target):
     return selected
 
 
+def is_harvest_month():
+    return datetime.now().month == 12
+
+
 def evaluate_momentum_signal(ticker, score, technicals):
     bullish_count = sum(1 for v in technicals.values() if v == "bullish")
     bearish_count = sum(1 for v in technicals.values() if v == "bearish")
@@ -675,6 +679,7 @@ def run_scoring(holdings):
         days_until_eligible = None
         if flagged_since is not None:
             days_until_eligible = max(0, MIN_DAYS_BEFORE_FULL_SELL - (datetime.now() - flagged_since).days)
+        wash_clear_date = wash_sale_clear_date_for(ticker)
         current_value   = shares * live_price
         pnl             = current_value - invested
         pnl_pct         = (pnl / invested) if invested > 0 else 0
@@ -693,9 +698,10 @@ def run_scoring(holdings):
             "tier":            tier,
             "sector":          sector,
             "pos_type":        pos_type,
-            "momentum_signal":     momentum_signal,
-            "watchlisted_since":   flagged_since.isoformat() if flagged_since else None,
-            "days_until_eligible": days_until_eligible,
+            "momentum_signal":      momentum_signal,
+            "watchlisted_since":    flagged_since.isoformat() if flagged_since else None,
+            "days_until_eligible":  days_until_eligible,
+            "wash_sale_clear_date": wash_clear_date.isoformat() if wash_clear_date else None,
         })
 
     if not rows:
@@ -716,6 +722,16 @@ def run_scoring(holdings):
     main_ranked = df[main_mask].sort_values("score", ascending=False)
     excess      = set(main_ranked.iloc[MAX_MAIN_POSITIONS:]["ticker"]) if len(main_ranked) > MAX_MAIN_POSITIONS else set()
     df["over_position_cap"] = df["ticker"].isin(excess)
+
+    if is_harvest_month():
+        realized_this_year = abs(realized_losses_this_year())
+        remaining_target    = max(0, TAX_LOSS_ANNUAL_LIMIT - realized_this_year)
+        tax_candidates       = select_tax_harvest_candidates(list(zip(df["ticker"], df["pnl"])), remaining_target)
+    else:
+        realized_this_year = None
+        remaining_target    = None
+        tax_candidates       = set()
+    df["tax_harvest_candidate"] = df["ticker"].isin(tax_candidates)
 
     df = df.sort_values("score", ascending=False).reset_index(drop=True)
 
@@ -759,6 +775,8 @@ def run_scoring(holdings):
         "regime":         regime,
         "semi_cap":       semi_cap,
         "position_count": len(positions),
+        "tax_harvest_realized_this_year": round(realized_this_year, 2) if realized_this_year is not None else None,
+        "tax_harvest_target_remaining":   round(remaining_target, 2) if remaining_target is not None else None,
     }
 
 
