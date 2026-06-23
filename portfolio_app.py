@@ -519,6 +519,22 @@ def wash_sale_clear_date_for(ticker):
     return sale_date + timedelta(days=WASH_SALE_DAYS)
 
 
+def select_tax_harvest_candidates(positions, remaining_target):
+    """positions: iterable of (ticker, pnl) pairs. Greedily selects losing positions,
+    largest loss first, accumulating up to but not exceeding remaining_target. A loss that
+    would overshoot is skipped (not a stopping point) so smaller losses further down the
+    list still get a chance to fit. Returns the set of selected tickers."""
+    losers = sorted((p for p in positions if p[1] < 0), key=lambda p: p[1])
+    selected = set()
+    running_total = 0.0
+    for ticker, pnl in losers:
+        loss = abs(pnl)
+        if running_total + loss <= remaining_target:
+            selected.add(ticker)
+            running_total += loss
+    return selected
+
+
 def evaluate_momentum_signal(ticker, score, technicals):
     bullish_count = sum(1 for v in technicals.values() if v == "bullish")
     bearish_count = sum(1 for v in technicals.values() if v == "bearish")
