@@ -29,7 +29,7 @@ import warnings
 import threading
 import webbrowser
 import csv as csv_module
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -43,6 +43,9 @@ app = Flask(__name__)
 DATA_FILE      = "portfolio_data.json"
 CSV_FILE       = "portfolio_weights.csv"
 WATCHLIST_FILE = "watchlist_state.json"
+REALIZED_SALES_FILE   = "realized_sales.json"
+TAX_LOSS_ANNUAL_LIMIT  = 3000
+WASH_SALE_DAYS         = 31
 REPORTS_DIR    = "reports"
 
 # ─────────────────────────────────────────────────────────────
@@ -466,6 +469,54 @@ def unflag_watchlisted(ticker):
     flagged.pop(ticker, None)
     state["flagged"] = flagged
     save_watchlist_state(state)
+
+
+def load_realized_sales():
+    if os.path.exists(REALIZED_SALES_FILE):
+        with open(REALIZED_SALES_FILE) as f:
+            return json.load(f)
+    return {"sales": []}
+
+
+def save_realized_sales(state):
+    with open(REALIZED_SALES_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+
+def log_realized_sale(ticker, amount, pos_type):
+    state = load_realized_sales()
+    sales = state.get("sales", [])
+    sales.append({
+        "ticker":   ticker,
+        "amount":   amount,
+        "date":     datetime.now().isoformat(),
+        "pos_type": pos_type,
+    })
+    state["sales"] = sales
+    save_realized_sales(state)
+
+
+def realized_losses_this_year():
+    state     = load_realized_sales()
+    this_year = datetime.now().year
+    total     = 0.0
+    for sale in state.get("sales", []):
+        sale_date = datetime.fromisoformat(sale["date"])
+        if sale_date.year == this_year and sale["amount"] < 0:
+            total += sale["amount"]
+    return total
+
+
+def wash_sale_clear_date_for(ticker):
+    state    = load_realized_sales()
+    matching = [s for s in state.get("sales", []) if s["ticker"] == ticker]
+    if not matching:
+        return None
+    latest    = max(matching, key=lambda s: s["date"])
+    sale_date = datetime.fromisoformat(latest["date"])
+    if (datetime.now() - sale_date).days >= WASH_SALE_DAYS:
+        return None
+    return sale_date + timedelta(days=WASH_SALE_DAYS)
 
 
 def evaluate_momentum_signal(ticker, score, technicals):
