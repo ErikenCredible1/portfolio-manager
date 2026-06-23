@@ -512,7 +512,7 @@ def wash_sale_clear_date_for(ticker):
     matching = [s for s in state.get("sales", []) if s["ticker"] == ticker]
     if not matching:
         return None
-    latest    = max(matching, key=lambda s: s["date"])
+    latest    = max(matching, key=lambda s: datetime.fromisoformat(s["date"]))
     sale_date = datetime.fromisoformat(latest["date"])
     if (datetime.now() - sale_date).days >= WASH_SALE_DAYS:
         return None
