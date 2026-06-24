@@ -1691,7 +1691,7 @@ function renderResults(data) {
       <td class="ticker-cell">${p.ticker}</td>
       <td class="name-cell">${p.name||''}</td>
       <td><span class="tier tier-${p.tier}">${p.tier}</span></td>
-      <td class="r pnl-neg">${fmt$(p.pnl)}</td>
+      <td class="r ${pnlClass(p.pnl)}">${fmt$(p.pnl)}</td>
       <td class="r">${fmt$(taxCumulative)}</td>
       <td><button class="btn btn-secondary" style="padding:3px 8px;font-size:9px" onclick="markHarvested('${p.ticker}', ${p.pnl}, '${p.pos_type}')">Mark as Harvested</button></td>
     </tr>`;
