@@ -2,6 +2,7 @@
 portfolio_data.json
 portfolio_weights.csv
 watchlist_state.json
+realized_sales.json
 
 # Generated PDF snapshots (derived from real holdings data)
 reports/
