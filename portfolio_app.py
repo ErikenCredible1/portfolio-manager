@@ -823,6 +823,15 @@ def api_unwatch():
     unflag_watchlisted(ticker)
     return jsonify({"ok": True})
 
+@app.route("/api/log-sale", methods=["POST"])
+def api_log_sale():
+    data     = request.json
+    ticker   = data.get("ticker", "").strip().upper()
+    amount   = float(data.get("amount", 0))
+    pos_type = data.get("pos_type", "main")
+    log_realized_sale(ticker, amount, pos_type)
+    return jsonify({"ok": True})
+
 @app.route("/api/price/<ticker>")
 def api_price(ticker):
     try:
