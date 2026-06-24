@@ -7,6 +7,9 @@ realized_sales.json
 # Generated PDF snapshots (derived from real holdings data)
 reports/
 
+# Monthly automation log (local cron output)
+monthly_rebalance.log
+
 # OS / editor
 .DS_Store
 
