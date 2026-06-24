@@ -1099,6 +1099,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <button class="tab"        onclick="showTab('sectors')">[ SECTORS ]</button>
         <button class="tab"        onclick="showTab('trials')">[ TRIALS ]</button>
         <button class="tab"        onclick="showTab('watchlist')">[ WATCHLIST ]</button>
+        <button class="tab"        onclick="showTab('taxharvest')">[ TAX HARVEST ]</button>
       </div>
 
       <!-- RANKINGS -->
@@ -1171,6 +1172,40 @@ HTML_PAGE = """<!DOCTYPE html>
           </tr></thead>
           <tbody id="watchlistBody"></tbody>
         </table></div>
+      </div>
+
+      <!-- TAX HARVEST -->
+      <div id="tab-taxharvest" class="hidden">
+        <div id="taxHarvestSummary" style="margin-bottom:14px;font-size:11px;color:var(--muted)"></div>
+
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th>Ticker</th><th>Name</th><th>Tier</th>
+            <th class="r">P&amp;L $</th><th class="r">Cumulative</th><th></th>
+          </tr></thead>
+          <tbody id="taxHarvestBody"></tbody>
+        </table></div>
+
+        <div style="margin-top:18px;font-size:10px;color:var(--dim);max-width:520px">
+          Wash sale rule: if you rebuy the same ticker within 30 days before or after a tax-loss sale, the IRS disallows that loss for this year's taxes. Wait until the clear date below before repurchasing.
+        </div>
+        <div class="table-wrap" style="margin-top:8px"><table>
+          <thead><tr><th>Ticker</th><th>Clears</th></tr></thead>
+          <tbody id="washSaleBody"></tbody>
+        </table></div>
+
+        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px">Log a Realized Sale</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input id="logSaleTicker" placeholder="Ticker" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:11px;padding:6px 8px;border-radius:4px;width:80px;text-transform:uppercase">
+            <input id="logSaleAmount" placeholder="Amount ($, negative = loss)" type="number" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:11px;padding:6px 8px;border-radius:4px;width:200px">
+            <select id="logSalePosType" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:11px;padding:6px 8px;border-radius:4px">
+              <option value="main">Main</option>
+              <option value="trial">Trial</option>
+            </select>
+            <button class="btn btn-secondary" onclick="logSale()">Log Sale</button>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -1336,6 +1371,40 @@ async function unwatchTicker(ticker) {
   }
 }
 
+async function markHarvested(ticker, amount, posType) {
+  try {
+    await fetch('/api/log-sale', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ticker, amount, pos_type: posType})
+    });
+    document.querySelectorAll('#taxHarvestBody tr').forEach(tr => {
+      if (tr.querySelector('.ticker-cell')?.textContent.trim() === ticker) tr.remove();
+    });
+    toast(ticker + ' logged as harvested');
+  } catch (e) {
+    toast('Failed to log sale: ' + e.message, true);
+  }
+}
+
+async function logSale() {
+  const ticker  = document.getElementById('logSaleTicker').value.trim().toUpperCase();
+  const amount  = parseFloat(document.getElementById('logSaleAmount').value);
+  const posType = document.getElementById('logSalePosType').value;
+  if (!ticker || isNaN(amount)) { toast('Enter a ticker and a valid amount', true); return; }
+
+  try {
+    await fetch('/api/log-sale', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ticker, amount, pos_type: posType})
+    });
+    document.getElementById('logSaleTicker').value = '';
+    document.getElementById('logSaleAmount').value = '';
+    toast(ticker + ' sale logged');
+  } catch (e) {
+    toast('Failed to log sale: ' + e.message, true);
+  }
+}
+
 async function loadPortfolio() {
   try {
     const res  = await fetch('/api/load');
@@ -1426,11 +1495,11 @@ async function analyze() {
 
 // ── TABS ─────────────────────────────────────────────────────
 function showTab(name) {
-  ['rankings','buys','exits','sectors','trials','watchlist'].forEach(t => {
+  ['rankings','buys','exits','sectors','trials','watchlist','taxharvest'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
   });
   document.querySelectorAll('.tab').forEach((btn, i) => {
-    btn.classList.toggle('active', ['rankings','buys','exits','sectors','trials','watchlist'][i] === name);
+    btn.classList.toggle('active', ['rankings','buys','exits','sectors','trials','watchlist','taxharvest'][i] === name);
   });
 }
 
@@ -1605,6 +1674,34 @@ function renderResults(data) {
     <td><span class="action ${p.momentum_signal}">${p.momentum_signal}</span></td>
     <td><button class="btn btn-secondary" style="padding:3px 8px;font-size:9px" onclick="unwatchTicker('${p.ticker}')">Remove</button></td>
   </tr>`).join('') : '<tr><td colspan="8" class="empty">No positions on the watchlist</td></tr>';
+
+  // Tax Harvest
+  const taxCandidates = all.filter(p => p.tax_harvest_candidate);
+  const summaryEl = document.getElementById('taxHarvestSummary');
+  if (data.tax_harvest_target_remaining != null) {
+    summaryEl.innerHTML = `Target: ${fmt$(data.tax_harvest_target_remaining)} remaining of $3,000 &mdash; ${fmt$(data.tax_harvest_realized_this_year)} already realized this year`;
+  } else {
+    summaryEl.innerHTML = 'No tax-loss harvesting candidates this month &mdash; recommendations appear in December.';
+  }
+
+  let taxCumulative = 0;
+  document.getElementById('taxHarvestBody').innerHTML = taxCandidates.length ? taxCandidates.map(p => {
+    taxCumulative += Math.abs(p.pnl);
+    return `<tr>
+      <td class="ticker-cell">${p.ticker}</td>
+      <td class="name-cell">${p.name||''}</td>
+      <td><span class="tier tier-${p.tier}">${p.tier}</span></td>
+      <td class="r pnl-neg">${fmt$(p.pnl)}</td>
+      <td class="r">${fmt$(taxCumulative)}</td>
+      <td><button class="btn btn-secondary" style="padding:3px 8px;font-size:9px" onclick="markHarvested('${p.ticker}', ${p.pnl}, '${p.pos_type}')">Mark as Harvested</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" class="empty">No tax-loss harvesting candidates this month</td></tr>';
+
+  const washRestricted = all.filter(p => p.wash_sale_clear_date);
+  document.getElementById('washSaleBody').innerHTML = washRestricted.length ? washRestricted.map(p => `<tr>
+    <td class="ticker-cell">${p.ticker}</td>
+    <td>${fmtDate(p.wash_sale_clear_date)}</td>
+  </tr>`).join('') : '<tr><td colspan="2" class="empty">No active wash-sale restrictions</td></tr>';
 
   document.getElementById('welcome').classList.add('hidden');
   document.getElementById('resultsArea').classList.remove('hidden');
